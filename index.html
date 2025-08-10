@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>An Interactive Exegesis of Fabric Science</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://css.gg/css?=|arrow-right" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The SPA is structured as a "Process-Driven Interactive Journey" that mirrors the logical flow of the source report (Fiber -> Yarn -> Fabric -> Finish -> Market). The core navigation element is a central, interactive flowchart of the textile production process, built with HTML/CSS. Clicking a stage on the flowchart navigates the user to the corresponding content section. This structure was chosen because the source report describes a linear process, and a visual, process-oriented interface makes this complex journey intuitive and easy to follow for students. It combines the clarity of a linear narrative with the flexibility of non-linear exploration. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Overall book structure (4 parts, 16 chapters). Goal: Organize/Navigate. Viz/Method: Interactive flowchart (HTML/Tailwind) and a fixed top navigation bar. Interaction: Click on a stage/link to scroll to the relevant content section. Justification: Provides a clear visual map of the entire textile process, making the report's structure intuitive.
+        - Report Info: Chapter 5 (Woven Fabrics). Goal: Compare. Viz/Method: A single <canvas> element. Interaction: Buttons ("Plain", "Twill", "Satin") will trigger a JS function to clear and redraw the corresponding weave pattern. Justification: An interactive diagram is more engaging and space-efficient than three static images. Library/Method: Vanilla JS on Canvas.
+        - Report Info: Chapter 3 (Fiber Classification). Goal: Inform/Organize. Viz/Method: Interactive cards (HTML/Tailwind) for key fibers. Interaction: Clicking a card reveals a short list of its key properties. Justification: Hides detailed information until requested, reducing cognitive load and encouraging interaction.
+        - Report Info: Chapter 2 (Fiber Characteristics). Goal: Inform/Compare. Viz/Method: A dynamic doughnut chart. Interaction: Buttons update the chart to show the property breakdown (Aesthetic vs. Performance). Justification: Provides a quick visual summary of fiber property categories. Library/Method: Chart.js.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #fdfbf8;
+        color: #333;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: "Lora", serif;
+      }
+      .flowchart-item {
+        transition: all 0.3s ease-in-out;
+      }
+      .flowchart-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+      .nav-link.active {
+        color: #a16207;
+        border-bottom-color: #a16207;
+      }
+      .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        height: 300px;
+        max-height: 400px;
+      }
+      .flowchart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        align-items: center;
+        position: relative;
+      }
+      .flowchart-item-wrapper {
+        position: relative;
+        display: flex;
+        justify-content: center;
+      }
+      .flowchart-arrow {
+        display: none;
+      }
+      .prose figure {
+        margin: 1.5em 0;
+        justify-items: center;
+      }
+      .prose img {
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        width: 100%;
+        height: auto;
+      }
+      .prose figcaption {
+        text-align: center;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+        font-style: italic;
+      }
+      #chapter7 .chart-container img {
+        height: 300px;
+        width: 300px;
+      }
+      @media (min-width: 768px) {
+        .chart-container {
+          height: 350px;
+        }
+        .prose img {
+          width: 35%;
+        }
+        .flowchart-arrow {
+          display: block;
+          position: absolute;
+          top: 50%;
+          left: 100%;
+          transform: translate(-50%, -50%);
+          color: #9ca3af;
+        }
+        .flowchart-item-wrapper:last-child .flowchart-arrow {
+          display: none;
+        }
+        #chapter7 .chart-container img {
+        height: auto;
+        width: auto;
+      }
+      }
+    </style>
+  </head>
+  <body class="bg-[#FDFBF8] text-zinc-800">
+    <header
+      class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-zinc-200"
+    >
+      <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex-shrink-0">
+            <h1 class="text-xl font-bold text-zinc-900">
+              Fabric Science: An Interactive Exegesis
+            </h1>
+          </div>
+          <div class="hidden md:block">
+            <div id="nav-links" class="ml-10 flex items-baseline space-x-4">
+              <a
+                href="#part1"
+                class="nav-link text-zinc-600 hover:text-amber-800 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent transition-colors"
+                >Foundations</a
+              >
+              <a
+                href="#part2"
+                class="nav-link text-zinc-600 hover:text-amber-800 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent transition-colors"
+                >Creation</a
+              >
+              <a
+                href="#part3"
+                class="nav-link text-zinc-600 hover:text-amber-800 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent transition-colors"
+                >Enhancement</a
+              >
+              <a
+                href="#part4"
+                class="nav-link text-zinc-600 hover:text-amber-800 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent transition-colors"
+                >Context</a
+              >
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <section class="text-center mb-16">
+        <h4 class="text-4xl tracking-tight text-zinc-900 mb-4">
+          Shainila Afghan
+        </h4>
+        <h2
+          class="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 mb-4"
+        >
+          The Journey of a Textile
+        </h2>
+        <p class="max-w-3xl mx-auto text-lg text-zinc-600">
+          This application deconstructs J.J. Pizzuto's "Fabric Science,"
+          translating its comprehensive analysis into an interactive experience.
+          Explore the lifecycle of a textile, from a single fiber to a finished
+          product in the global marketplace. Click any stage below to begin.
+        </p>
+      </section>
+
+      <section id="flowchart" class="mb-20">
+        <div class="flowchart-grid gap-x-4 gap-y-12 md:gap-y-16">
+          <div class="flowchart-item-wrapper">
+            <a
+              href="#chapter2"
+              class="flowchart-item bg-white p-4 rounded-lg shadow-md cursor-pointer border border-zinc-200 w-full max-w-xs"
+            >
+              <div class="text-3xl mb-2">🔬</div>
+              <h3 class="font-semibold text-zinc-900">Fiber</h3>
+              <p class="text-sm text-zinc-500">The Building Block</p>
+            </a>
+            <i class="gg-arrow-right flowchart-arrow"></i>
+          </div>
+          <div class="flowchart-item-wrapper">
+            <a
+              href="#chapter4"
+              class="flowchart-item bg-white p-4 rounded-lg shadow-md cursor-pointer border border-zinc-200 w-full max-w-xs"
+            >
+              <div class="text-3xl mb-2">🧵</div>
+              <h3 class="font-semibold text-zinc-900">Yarn</h3>
+              <p class="text-sm text-zinc-500">From Fiber to Thread</p>
+            </a>
+            <i class="gg-arrow-right flowchart-arrow"></i>
+          </div>
+          <div class="flowchart-item-wrapper">
+            <a
+              href="#chapter5"
+              class="flowchart-item bg-white p-4 rounded-lg shadow-md cursor-pointer border border-zinc-200 w-full max-w-xs"
+            >
+              <div class="text-3xl mb-2">🕸️</div>
+              <h3 class="font-semibold text-zinc-900">Fabric</h3>
+              <p class="text-sm text-zinc-500">Weaving & Knitting</p>
+            </a>
+            <i class="gg-arrow-right flowchart-arrow"></i>
+          </div>
+          <div class="flowchart-item-wrapper">
+            <a
+              href="#chapter8"
+              class="flowchart-item bg-white p-4 rounded-lg shadow-md cursor-pointer border border-zinc-200 w-full max-w-xs"
+            >
+              <div class="text-3xl mb-2">🎨</div>
+              <h3 class="font-semibold text-zinc-900">Finishing</h3>
+              <p class="text-sm text-zinc-500">Dyeing & Printing</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div id="content">
+        <section id="part1" class="py-12 scroll-mt-20">
+          <h2 class="text-3xl font-bold text-zinc-900 mb-2">
+            Part I: The Foundational Elements
+          </h2>
+          <div class="prose max-w-none text-lg text-zinc-600 mb-8">
+            <p>
+              This inaugural section serves as the bedrock for all subsequent
+              learning, establishing the crucial scientific and industrial
+              context of the textile world. The journey begins at a macro level,
+              providing a panoramic view of the textile industry as a complex,
+              interconnected global ecosystem. It maps the flow of materials and
+              value from agriculture and chemical engineering all the way to the
+              retail floor, emphasizing the vast network of professions that
+              contribute to the creation of a single garment. This initial
+              framing is essential; it ensures that students understand from the
+              outset that textile science is not an isolated laboratory
+              discipline but a field deeply embedded in commerce, culture, and
+              global economics.
+            </p>
+            <p>
+              From this broad perspective, the focus then telescopes
+              dramatically inward, moving from the global to the microscopic.
+              The subsequent chapters deconstruct the very essence of what makes
+              a textile a textile: the fiber. This is the fundamental building
+              block, the 'DNA' from which all fabric characteristics originate.
+              The text meticulously lays out the language of fiber science,
+              introducing the concepts of polymer chemistry, molecular
+              arrangement (crystallinity and amorphousness), and the physical
+              properties that these structures impart. Understanding these
+              foundational elements is non-negotiable for any serious student of
+              textiles. It is the key that unlocks the ability to predict a
+              fabric's behavior, to troubleshoot production issues, and to
+              innovate with new materials. This section provides the essential
+              'why' behind a fabric's performance, creating the scientific
+              framework upon which all practical knowledge of yarns, weaves, and
+              finishes will be built.
+            </p>
+          </div>
+          <div class="space-y-12">
+            <div
+              id="chapter1"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 1: The Textile Industry
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed mb-6">
+                <p class="mb-4">
+                  This initial chapter serves as a crucial overture to the
+                  entire text, setting the stage by defining the immense scope
+                  and complexity of the global textile industry. It functions as
+                  a roadmap, providing students with a high-level understanding
+                  of the journey a textile product takes from its conceptual
+                  origin to the final consumer. The primary goal is to move
+                  beyond the simple perception of textiles as mere cloth and
+                  reframe the field as a vast, interconnected ecosystem of
+                  agriculture, chemical engineering, manufacturing, design, and
+                  commerce. The chapter introduces the core concept of the
+                  textile pipeline or supply chain, illustrating the linear
+                  progression from raw materials to finished goods.
+                </p>
+                <p class="mb-4">
+                  The analysis begins with the foundational sources of all
+                  textiles: fibers. It explains that this initial stage involves
+                  everything from the agricultural cultivation of natural fibers
+                  like cotton and wool to the complex chemical synthesis of
+                  manufactured fibers like polyester and nylon. This establishes
+                  the industry's deep roots in both natural and industrial
+                  sciences. The chapter emphasizes that the choices made at this
+                  initial stage—the selection of a specific fiber—have cascading
+                  effects on the properties, cost, and environmental impact of
+                  the final product. It provides the context for why
+                  understanding fiber science, the subject of the subsequent
+                  chapters, is so fundamental.
+                </p>
+                <figure>
+                  <img
+                    src="https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcRfRjX6vjiASkO4c9_S69J_K9inr2-HkluxLsmF1In-K9ci-LiGkOYIlsT2ZDXHdq4jHhz0-80Pc3fxpnakGrjDHKRzCsuN4-0cTYDSiYbRNFxzSms"
+                    alt="Someone hand knitting"
+                  />
+                  <figcaption>
+                    Representative image: The Textile Industry - hand knotting.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  From fibers, the chapter follows the pipeline to the creation
+                  of yarns. It explains that this intermediate step, which
+                  involves spinning fibers into continuous threads, is a
+                  critical manufacturing process that dictates the texture,
+                  strength, and appearance of the final fabric. The text then
+                  moves to the creation of fabrics, introducing the primary
+                  methods of weaving and knitting that will be explored in depth
+                  later in the book. It positions these as the architectural
+                  processes that transform one-dimensional yarn into
+                  two-dimensional planes of cloth.
+                </p>
+                <p class="mb-4">
+                  The next stage in the pipeline discussed is the finishing of
+                  textiles. This section introduces the value-added processes of
+                  dyeing, printing, and applying chemical or mechanical
+                  finishes. The chapter frames this as the stage where fabrics
+                  acquire their personality and performance
+                  characteristics—their color, pattern, softness, or
+                  functionality like water repellency. It highlights that this
+                  is a highly specialized field combining chemistry and
+                  aesthetics to meet specific consumer demands and market
+                  trends.
+                </p>
+                <p class="mb-4">
+                  Finally, the chapter concludes the pipeline with the
+                  manufacturing of end-use products, from apparel and home
+                  furnishings to technical textiles. It then zooms out to
+                  discuss the global nature of this industry, touching upon the
+                  complex web of international trade, sourcing, and logistics
+                  that defines modern textile production. By outlining the
+                  numerous career paths available at each stage—from fiber
+                  scientist and textile designer to quality control engineer and
+                  global merchandiser—Chapter 1 successfully illustrates the
+                  professional relevance of the subject matter and provides a
+                  compelling introduction to the world of fabric science.
+                </p>
+                <div class="mt-6">
+                  <h4 class="font-semibold mb-2">Explore Property Types:</h4>
+                  <div id="chart-controls" class="flex space-x-2">
+                    <button
+                      data-props="aesthetic"
+                      class="bg-amber-100 text-amber-800 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Aesthetic
+                    </button>
+                    <button
+                      data-props="performance"
+                      class="bg-blue-100 text-blue-800 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Performance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              id="chapter2"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 2: Fiber Characteristics
+              </h3>
+              <div class="grid md:grid-cols-2 gap-8">
+                <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                  <p class="mb-4">
+                    This chapter shifts the analysis from the industrial to the
+                    scientific, laying the groundwork for all material science
+                    to follow. It is a critical section that introduces the
+                    fundamental vocabulary and concepts essential for the rest
+                    of the text. It deconstructs the properties defining a
+                    fiber's performance, classifying them into primary
+                    characteristics (essential for a fiber to be processed) and
+                    secondary characteristics (which determine its end-use
+                    suitability).
+                  </p>
+                  <p class="mb-4">
+                    The text delves into the scientific basis for these
+                    properties, introducing concepts like polymer morphology—the
+                    arrangement of monomers into long polymer chains—and the
+                    degree of polymerization, which determines a fiber's
+                    strength. It explains how the internal structure, whether
+                    amorphous (disorganized) or crystalline (aligned), dictates
+                    properties like elasticity and absorbency. An amorphous
+                    structure allows for more stretch and moisture absorption,
+                    while a crystalline structure imparts strength and
+                    stability.
+                  </p>
+                  <p class="mb-4">
+                    By establishing this framework, the book enables students to
+                    understand *why* certain fibers are chosen for specific end
+                    uses. For example, they learn why a hydrophilic
+                    (water-absorbing) fiber like cotton, with its amorphous
+                    regions, is ideal for towels, or why the highly crystalline
+                    structure of polyester makes it resilient and
+                    wrinkle-resistant. This chapter provides the theoretical
+                    foundation for the hands-on fiber identification tests
+                    (visual, burning, microscopic, and solubility) that are a
+                    core component of the associated lab work and a key learning
+                    outcome for students.
+                  </p>
+                  <div class="mt-6">
+                    <h4 class="font-semibold mb-2">Explore Property Types:</h4>
+                    <div id="chart-controls" class="flex space-x-2">
+                      <button
+                        data-props="aesthetic"
+                        class="bg-amber-100 text-amber-800 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Aesthetic
+                      </button>
+                      <button
+                        data-props="performance"
+                        class="bg-blue-100 text-blue-800 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Performance
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="chart-container">
+                  <canvas id="fiberChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div
+              id="chapter3"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 3: Natural & Manufactured Fibers
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed mb-6">
+                <p class="mb-4">
+                  Building directly on the previous chapter, this section serves
+                  as a detailed encyclopedia of the most commercially
+                  significant fibers. It bifurcates the world of fibers into two
+                  main categories: natural (derived from plant or animal
+                  sources) and manufactured (created through chemical
+                  processes). For each major fiber, the text provides a
+                  systematic analysis of its production, chemical composition,
+                  physical structure, key properties, and common applications.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/E9D5A1/44403C?text=Cotton+Harvesting&font=lora"
+                    alt="Cotton harvesting process"
+                  />
+                  <figcaption>
+                    Representative image: The process of harvesting raw cotton
+                    fibers.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The chapter begins with natural cellulosic fibers, with a deep
+                  dive into cotton, the world's most widely used natural fiber.
+                  It covers its cultivation, ginning process, and inherent
+                  properties like softness, absorbency, and strength. It also
+                  discusses other bast fibers like linen (from flax) and ramie.
+                  It then moves to natural protein fibers, detailing the
+                  sericulture of silk and the complex structure of wool,
+                  explaining why its natural crimp and scales give it unique
+                  properties of warmth, elasticity, and moisture-wicking.
+                </p>
+                <p class="mb-4">
+                  The second half of the chapter is dedicated to manufactured
+                  fibers. It explains the difference between regenerated fibers,
+                  which use a natural raw material like wood pulp (e.g., rayon,
+                  lyocell, acetate), and true synthetic fibers, which are
+                  synthesized from petrochemicals (e.g., polyester, nylon,
+                  acrylic, spandex). The 12th edition significantly updates this
+                  section with information on innovations like bio-based fibers
+                  (e.g., PLA) and provides an easy-to-visualize fiber
+                  classification flowchart, a key pedagogical tool to help
+                  students organize this dense information. This chapter
+                  directly corresponds to the first set of swatches in the
+                  companion *Swatch Kit*, allowing students to physically handle
+                  and compare the materials discussed.
+                </p>
+              </div>
+              <div
+                id="fiber-cards"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              ></div>
+            </div>
+            <div
+              id="chapter4"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 4: Yarns & Sewing Threads
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This chapter explains the crucial intermediate step that
+                  transforms loose, short staple fibers or long, continuous
+                  filament fibers into the coherent strands required for fabric
+                  construction. It details the different yarn construction
+                  techniques, including mechanical spinning systems (like ring
+                  spinning for cotton and woolen/worsted systems for wool) and
+                  chemical spinning methods (wet, dry, and melt spinning for
+                  manufactured filaments).
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3B8C5/44403C?text=Industrial+Yarn+Spinning&font=lora"
+                    alt="Industrial yarn spinning machine"
+                  />
+                  <figcaption>
+                    Representative image: Large-scale industrial yarn spinning.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  A key focus is on yarn twist, introducing the concepts of
+                  S-twist and Z-twist and explaining how the amount of twist
+                  (measured in twists per inch) critically impacts the yarn's
+                  strength and the final fabric's hand-feel. Low-twist yarns
+                  create softer, fuzzier fabrics, while high-twist yarns create
+                  the crisp, lively texture of crepe. The chapter also
+                  demystifies yarn sizing systems, explaining the difference
+                  between direct systems (like denier and tex, used for
+                  filaments) and indirect systems (like cotton count, used for
+                  spun yarns).
+                </p>
+                <p class="mb-4">
+                  Finally, it provides a clear classification of yarn types. It
+                  differentiates between simple yarns (single and plied),
+                  complex/novelty yarns (like slub, boucle, and chenille, which
+                  introduce texture and interest), and composite yarns (which
+                  combine different fiber types). This knowledge is reinforced
+                  by swatches in the kit that showcase fabrics made from a
+                  variety of these yarn types, allowing students to connect the
+                  abstract concept of yarn structure to a tangible fabric
+                  appearance.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="part2" class="py-12 scroll-mt-20">
+          <h2 class="text-3xl font-bold text-zinc-900 mb-2">
+            Part II: The Creation of Fabric
+          </h2>
+          <div class="prose max-w-none text-lg text-zinc-600 mb-8">
+            <p>
+              This central section of the book marks a pivotal transition in the
+              textile journey: the transformation of a one-dimensional line (the
+              yarn) into a two-dimensional plane (the fabric). This is where the
+              artistry and engineering of textile production truly come to the
+              forefront. The chapters in this part are dedicated to the core
+              methods of fabric construction, primarily weaving and knitting,
+              which together account for the vast majority of textiles we
+              encounter daily. The text treats these methods not as simple
+              crafts but as sophisticated industrial processes, each with its
+              own logic, machinery, and resulting material properties. It
+              provides the architectural blueprint for understanding fabric
+              itself.
+            </p>
+            <p>
+              By dedicating separate, detailed chapters to each major
+              construction method, the book allows for a deep and comparative
+              analysis. Students learn to see fabric not just as a surface, but
+              as a structure. They learn to identify the tell-tale signs of a
+              weave's interlacing pattern or a knit's interlocking loops. This
+              knowledge is fundamental, as the construction method is a primary
+              determinant of a fabric's drape, stability, stretch, and
+              durability. Understanding the difference between a stable woven
+              and a flexible knit is the first step in selecting the appropriate
+              material for a specific design, whether it's a tailored suit or a
+              comfortable t-shirt. This section, more than any other, bridges
+              the gap between abstract science and the tangible, tactile world
+              of fashion and interior design, empowering students to analyze and
+              deconstruct the fabrics that surround them.
+            </p>
+          </div>
+          <div class="space-y-12">
+            <div
+              id="chapter5"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 5: Woven Fabrics
+              </h3>
+              <div class="grid md:grid-cols-2 gap-8">
+                <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                  <p class="mb-4">
+                    This chapter delves into the mechanics of weaving, the most
+                    basic and ancient method of fabric construction. It begins
+                    by explaining the essential parts and motions of the
+                    loom—shedding, picking, beating-up, and taking-up—providing
+                    the technical vocabulary needed to understand the process.
+                    It defines key terms like warp (lengthwise yarns), weft
+                    (crosswise yarns), selvage, and grain.
+                  </p>
+                  <figure>
+                    <img
+                      src="https://placehold.co/600x400/D4A5A5/44403C?text=Modern+Weaving+Loom&font=lora"
+                      alt="A modern industrial weaving loom in operation"
+                    />
+                    <figcaption>
+                      Representative image: A modern industrial weaving loom.
+                    </figcaption>
+                  </figure>
+                  <p class="mb-4">
+                    The core of the chapter systematically breaks down the three
+                    fundamental weaves: plain, twill, and satin. For the plain
+                    weave, it explains its simple over-one-under-one structure,
+                    which makes it balanced and durable, and discusses
+                    variations like the basket weave and rib weave. For the
+                    twill weave, it details the characteristic diagonal
+                    structure created by floats, explaining why this makes
+                    fabrics like denim exceptionally strong. For the satin
+                    weave, it explains how long floats create high luster but
+                    also make the fabric prone to snagging.
+                  </p>
+                  <p class="mb-4">
+                    This foundational knowledge is essential for students to
+                    identify fabrics and understand their properties. The
+                    analysis of woven swatches with a pick glass—a magnifying
+                    tool included in the swatch kit—is the primary hands-on
+                    activity for this chapter, allowing students to count
+                    threads per inch and examine the interlacing patterns up
+                    close.
+                  </p>
+                  <h4 class="font-semibold mt-6 mb-2">
+                    Visualize Weave Structures:
+                  </h4>
+                  <div id="weave-controls" class="flex space-x-2">
+                    <button
+                      data-weave="plain"
+                      class="bg-amber-100 text-amber-800 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Plain
+                    </button>
+                    <button
+                      data-weave="twill"
+                      class="bg-blue-100 text-blue-800 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Twill
+                    </button>
+                    <button
+                      data-weave="satin"
+                      class="bg-green-100 text-green-800 px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      Satin
+                    </button>
+                  </div>
+                </div>
+                <div class="chart-container bg-zinc-50 rounded-lg p-2">
+                  <canvas id="weaveCanvas"></canvas>
+                </div>
+              </div>
+            </div>
+            <div
+              id="chapter6"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 6: Knitted Fabrics
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  Following the logic of the previous chapter, this section
+                  provides a parallel, in-depth analysis of knitting. It
+                  explains the fundamental difference between the two main
+                  classes of knits: weft knitting (where a single yarn runs
+                  horizontally, forming loops across the fabric width, like in a
+                  hand-knitted sweater) and warp knitting (where multiple yarns
+                  run vertically, forming loops simultaneously in a lengthwise
+                  direction).
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3C5B3/44403C?text=Circular+Knitting+Machine&font=lora"
+                    alt="A large circular knitting machine for jersey fabric"
+                  />
+                  <figcaption>
+                    Representative image: A circular knitting machine for jersey
+                    fabric.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The chapter details the four basic stitches in weft knitting:
+                  knit, purl, miss (or float), and tuck. It explains how
+                  combinations of these stitches create the primary weft knit
+                  fabrics: jersey (which has a plain face and purl back), rib
+                  knits (which have vertical ribs and crosswise stretch), and
+                  purl knits. It also covers more complex double knits like
+                  interlock.
+                </p>
+                <p class="mb-4">
+                  For warp knitting, it discusses the two main types of
+                  machines—tricot and raschel—and the fabrics they produce.
+                  Tricot knits are known for being fine and stable, often used
+                  in lingerie, while raschel knits can produce a wide range of
+                  fabrics from fine lace to heavy carpets. The chapter
+                  emphasizes the properties that distinguish knits from wovens,
+                  such as their inherent comfort, form-fitting ability, and easy
+                  movement, which makes them the dominant fabric type in
+                  activewear and other comfort-focused apparel. The
+                  corresponding swatches allow for a tactile comparison between
+                  these different structures.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter7"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 7: Other Types of Textiles
+              </h3>
+              <div class="grid md:grid-cols-2 gap-8">
+                <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                  <p class="mb-4">
+                    This chapter serves as an important supplement to the core
+                    discussions on weaving and knitting, expanding the student's
+                    understanding of fabric construction to include a variety of
+                    less common but commercially significant methods. Its
+                    primary purpose is to demonstrate that fabrics can be
+                    created directly from fibers or through alternative methods
+                    of yarn manipulation. This section is crucial for providing
+                    a complete picture of the textile landscape, especially in
+                    the context of technical textiles, disposable products, and
+                    decorative fabrics where these alternative structures are
+                    prevalent.
+                  </p>
+                  <p class="mb-4">
+                    The most significant category covered is nonwovens. The
+                    chapter provides a clear definition of a nonwoven fabric as
+                    a structure made directly from a web of fibers, bonded
+                    together by mechanical, chemical, or thermal means,
+                    completely bypassing the yarn-spinning process. It details
+                    the key production steps: forming a fiber web (using
+                    dry-laid, wet-laid, or spun-bonded methods) and then bonding
+                    the web. Mechanical bonding includes methods like felting,
+                    where the scales of wool fibers are interlocked using heat,
+                    moisture, and agitation, and needle-punching, where barbed
+                    needles are used to entangle fibers. Chemical bonding uses
+                    adhesives, while thermal bonding uses heat to melt and fuse
+                    thermoplastic fibers together.
+                  </p>
+                  <p class="mb-4">
+                    The chapter highlights the unique properties of nonwovens,
+                    such as their excellent porosity and lack of fraying, which
+                    make them ideal for a wide range of applications. It
+                    provides numerous examples, from everyday disposable
+                    products like coffee filters, dryer sheets, and cleaning
+                    wipes to durable goods like carpet backing, geotextiles for
+                    construction, and essential medical textiles like surgical
+                    gowns and masks. This demonstrates the immense economic
+                    importance of a category of fabrics often overlooked in
+                    traditional fashion-focused curricula.
+                  </p>
+                  <p class="mb-4">
+                    Beyond nonwovens, the chapter explores other unique fabric
+                    structures. It discusses tufted fabrics, the primary method
+                    for constructing modern carpets, where pile yarns are
+                    stitched into a pre-existing backing fabric. It also covers
+                    laminated and bonded fabrics, which involve adhering two or
+                    more layers of fabric together, or a fabric to a non-fabric
+                    layer like foam or a waterproof membrane. This is the
+                    technology behind many performance outerwear fabrics, where
+                    a fashion fabric is bonded to a functional membrane.
+                  </p>
+                  <p class="mb-4">
+                    Finally, the chapter touches upon decorative fabric
+                    constructions like lace, braids, and embroidery. It explains
+                    the intricate looping and twisting of yarns used to create
+                    openwork lace fabrics and the diagonal interlacing of yarns
+                    to form narrow braids. By covering these diverse and
+                    specialized methods of fabric creation, Chapter 7 ensures
+                    that students have a truly comprehensive understanding of
+                    textile technology, preparing them to analyze and identify a
+                    much wider array of materials they will encounter in their
+                    professional careers.
+                  </p>
+                </div>
+                <div class="chart-container">
+                  <figure>
+                    <img
+                      src="https://encrypted-tbn0.gstatic.com/licensed-image?q=tbn:ANd9GcR3bkPa_ijJvf2JhsmU9hnm0QXhIDm3qAUQDeGtfrg6sRVFxozJCmElB9_JByR8QkFwgW60iPIBgu2crVAZBKRhtc2CjMmZC-9sm-7SUTtKZ02-GSw"
+                      alt="A flat knitting machine"
+                    />
+                    <figcaption>
+                      Representative image: Other Types of Textiles - A flat
+                      knitting machine.
+                    </figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="part3" class="py-12 scroll-mt-20">
+          <h2 class="text-3xl font-bold text-zinc-900 mb-2">
+            Part III: Aesthetic & Functional Enhancement
+          </h2>
+          <div class="prose max-w-none text-lg text-zinc-600 mb-8">
+            <p>
+              This critical section of the book explores the transformative
+              processes that occur after a fabric is constructed. It focuses on
+              the "value-add" stages that convert unfinished, raw fabric—often
+              called "gray goods" or "greige"—into the final, marketable
+              materials we see and use every day. This is where textiles acquire
+              their personality, their color, their pattern, and their
+              purpose-driven performance characteristics. The chapters in this
+              part delve into the chemistry of dyeing, the artistry of printing,
+              and the engineering of finishing. It's a journey into how a simple
+              piece of cloth can be imbued with qualities like vibrant color,
+              intricate design, softness, water repellency, or wrinkle
+              resistance.
+            </p>
+            <p>
+              Understanding these enhancement processes is vital for any textile
+              professional. For a designer, it's about knowing the available
+              palette of aesthetic possibilities and the limitations of certain
+              techniques. For a merchandiser or product developer, it's about
+              specifying the right finish to meet a consumer need or a
+              performance standard, and understanding the associated costs and
+              quality implications. This section demystifies the
+              often-overlooked but essential final steps of textile production.
+              It highlights that the journey from fiber to fabric is not
+              complete until the material has been properly colored and
+              finished, ready to fulfill its intended role in the world of
+              apparel, interiors, or technical applications. It is the science
+              of this section that ultimately dictates a fabric's final appeal
+              and utility.
+            </p>
+          </div>
+          <div class="space-y-12">
+            <div
+              id="chapter8"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 8: Textile Dyeing
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This chapter is a comprehensive treatise on the principles and
+                  practices of adding color to textiles through dyeing. It
+                  begins by establishing a crucial chemical distinction: the
+                  difference between dyes, which are soluble substances that
+                  penetrate the fiber and form a chemical bond, and pigments,
+                  which are insoluble particles held on the fabric's surface
+                  with a binder. This fundamental difference is key to
+                  understanding critical performance aspects like colorfastness,
+                  crocking (color rubbing off), and the feel of the fabric.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/C5A3B8/44403C?text=Fabric+Dyeing+Vats&font=lora"
+                    alt="Large industrial vats for piece dyeing fabric"
+                  />
+                  <figcaption>
+                    Representative image: Industrial vats for piece dyeing
+                    fabric.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The text then systematically explores the various stages at
+                  which dyeing can occur, explaining the pros and cons of each.
+                  It covers **stock/fiber dyeing**, where fibers are dyed before
+                  being spun into yarn, ideal for creating heathered or tweed
+                  effects. It moves on to **yarn dyeing**, essential for
+                  producing woven patterns like plaids, ginghams, and stripes.
+                  The most common method, **piece dyeing** (dyeing whole bolts
+                  of fabric), is explained as a cost-effective solution for
+                  solid-colored fabrics. Finally, it discusses **garment
+                  dyeing**, where finished garments are dyed, allowing for quick
+                  response to fast-changing color trends.
+                </p>
+                <p class="mb-4">
+                  A significant portion of the chapter is dedicated to
+                  explaining the different classes of dyes and their chemical
+                  affinity for specific fiber types. For example, it details why
+                  reactive dyes are effective for cellulosic fibers like cotton,
+                  while disperse dyes are necessary for synthetics like
+                  polyester. This provides students with the scientific
+                  background needed to understand why certain colors can be
+                  achieved on some fabrics and not others, and how to specify
+                  the correct dye type to ensure the desired level of
+                  colorfastness for a product's end use.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter9"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 9: Textile Printing
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  Continuing the theme of coloration, this chapter focuses
+                  specifically on the localized application of color to create
+                  patterns and designs. It clearly distinguishes printing from
+                  dyeing, emphasizing that printing applies color to the surface
+                  in a predefined pattern, rather than saturating the entire
+                  fabric. This distinction is critical for fabric
+                  identification, as printed patterns are typically visible only
+                  on one side of the fabric.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3B8C5/44403C?text=Rotary+Screen+Printing&font=lora"
+                    alt="A large rotary screen printing machine in action"
+                  />
+                  <figcaption>
+                    Representative image: A rotary screen printing machine.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The chapter details the evolution and mechanics of various
+                  printing methods. It covers traditional techniques like
+                  **screen printing**, explaining both flatbed and the more
+                  industrial rotary screen processes, which are valued for their
+                  ability to apply thick layers of color for high vibrancy. It
+                  also explores **roller printing**, an older but still relevant
+                  method for large runs of simple designs. A significant focus
+                  is placed on modern **digital printing** (or inkjet printing),
+                  highlighting its advantages for creating highly detailed,
+                  photorealistic designs with unlimited colors and its
+                  suitability for customization and small production runs.
+                </p>
+                <p class="mb-4">
+                  Furthermore, the text explains different printing styles that
+                  achieve varied aesthetic effects. These include **direct
+                  printing**, the most common method of applying a colored
+                  pattern to a light-colored background; **discharge printing**,
+                  a process where a chemical is used to remove color from a
+                  previously dyed dark fabric to create a light pattern; and
+                  **resist printing**, where a substance is applied to prevent
+                  dye from reaching certain areas, a technique seen in
+                  traditional methods like batik. Understanding these methods
+                  provides students with a rich vocabulary for describing and
+                  specifying printed textiles.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter10"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 10: Textile Finishing
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This chapter details the vast array of chemical and mechanical
+                  processes that can alter a fabric's final look, feel, and
+                  performance. It classifies finishes as either aesthetic
+                  (changing the sensory qualities) or functional (improving
+                  performance). This section is crucial for understanding how
+                  fabrics are engineered to meet specific consumer needs and
+                  performance standards.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/E9D5A1/44403C?text=Fabric+Finishing+Process&font=lora"
+                    alt="Fabric passing through rollers in a finishing plant"
+                  />
+                  <figcaption>
+                    Representative image: Fabric passing through finishing
+                    rollers.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  Aesthetic finishes discussed include processes like
+                  calendering (using heated rollers to create a high sheen),
+                  napping (using wire brushes to raise fiber ends, creating a
+                  soft, fuzzy surface like on flannel), and embossing (creating
+                  a three-dimensional pattern). These finishes primarily alter
+                  the hand and appearance of the fabric.
+                </p>
+                <p class="mb-4">
+                  Functional finishes are designed to add value by improving a
+                  fabric's performance. The chapter covers a wide range,
+                  including durable press finishes for wrinkle resistance,
+                  water- and stain-repellent finishes, flame-retardant finishes,
+                  and antimicrobial finishes. Understanding these processes is a
+                  key aspect of technical design and product development.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="part4" class="py-12 scroll-mt-20">
+          <h2 class="text-3xl font-bold text-zinc-900 mb-2">
+            Part IV: The Broader Context
+          </h2>
+          <div class="prose max-w-none text-lg text-zinc-600 mb-8">
+            <p>
+              The final section of the book represents a crucial intellectual
+              pivot, zooming back out from the microscopic and technical details
+              of production to address the macro-level issues that shape the
+              textile industry. This part elevates the text from a simple
+              science manual to a comprehensive professional guide. It
+              acknowledges that a textile does not exist in a vacuum; it is a
+              product embedded within a complex ecosystem of environmental
+              ethics, consumer behavior, legal frameworks, and technological
+              innovation. Understanding this broader context is what
+              distinguishes a mere technician from a well-rounded,
+              forward-thinking industry professional. These chapters equip
+              students with the critical thinking skills needed to navigate the
+              contemporary challenges and opportunities of the global
+              marketplace.
+            </p>
+            <p>
+              This section addresses the most pressing questions facing the
+              industry today. How do we mitigate the environmental impact of our
+              production methods? What are our responsibilities to the consumer
+              regarding product care and safety? How do we ensure quality in a
+              globalized supply chain? What laws and regulations must we adhere
+              to? And what does the future of textiles look like? By dedicating
+              substantial analysis to topics like sustainability, care labeling,
+              quality assurance, and smart textiles, the book ensures that its
+              graduates are not only scientifically literate but also
+              commercially aware, ethically grounded, and prepared for the
+              future. It is the synthesis of the knowledge in this final part
+              with the foundational science from the preceding sections that
+              fulfills the book's ultimate mission: to prepare students for
+              successful and responsible careers in the multifaceted world of
+              textiles.
+            </p>
+          </div>
+          <div class="space-y-12">
+            <div
+              id="chapter11"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 11: Textiles and the Environment
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  Reflecting the most significant contemporary shift in the
+                  industry, this chapter provides a critical examination of the
+                  environmental impact of textile production and consumption.
+                  The book's treatment of this topic has evolved significantly
+                  over recent editions, moving from a peripheral concern to a
+                  central theme. The latest edition places a heavy emphasis on
+                  the principles of **textile sustainability** and the concept
+                  of a **circular economy**, demonstrating the book's commitment
+                  to preparing students for an industry where environmental
+                  stewardship is no longer optional.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3C5B3/44403C?text=Textile+Recycling&font=lora"
+                    alt="Bales of textiles ready for recycling"
+                  />
+                  <figcaption>
+                    Representative image: Bales of textiles ready for recycling.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The chapter analyzes the environmental footprint of textiles
+                  throughout their entire lifecycle. It begins with raw material
+                  extraction, discussing issues like the high water consumption
+                  of conventional cotton farming and the fossil fuel dependency
+                  of synthetic fiber production. It then moves to processing,
+                  covering the pollution caused by dyes and finishing chemicals,
+                  and the high energy usage of manufacturing plants. The
+                  discussion extends to the consumer use phase, addressing the
+                  problem of microplastic shedding from synthetic garments
+                  during laundering, and finally to the end-of-life stage,
+                  highlighting the immense challenge of textile waste in
+                  landfills.
+                </p>
+                <p class="mb-4">
+                  However, the chapter is not merely a critique; it is also a
+                  survey of solutions. It explores the development of more
+                  sustainable fibers, such as organic cotton, recycled
+                  polyester, and innovative bio-based materials. It discusses
+                  the adoption of cleaner production technologies, such as
+                  waterless dyeing methods and the use of non-toxic chemicals. A
+                  key focus is on the principles of circularity, including
+                  designing garments for longevity and recyclability, developing
+                  take-back programs, and exploring new chemical and mechanical
+                  recycling technologies. This chapter equips students with the
+                  essential knowledge to participate in creating a more
+                  sustainable future for the textile industry.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter12"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 12: Care and Renovation of Textiles
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This chapter provides practical, consumer-facing knowledge
+                  about textile care, a critical component of a product's
+                  lifecycle and a key determinant of customer satisfaction. It
+                  bridges the gap between textile science and everyday life,
+                  explaining the scientific principles behind laundering and
+                  dry-cleaning. The chapter emphasizes that proper care is not
+                  only essential for maintaining a garment's appearance and
+                  longevity but also has significant environmental implications.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/E9D5A1/44403C?text=Garment+Care+Labels&font=lora"
+                    alt="Close-up of various garment care instruction labels"
+                  />
+                  <figcaption>
+                    Representative image: A collection of garment care labels.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The text begins by discussing the nature of soils and stains,
+                  differentiating between various types and the chemical
+                  approaches required to remove them. It then delves into the
+                  science of cleaning, explaining the role of water,
+                  temperature, mechanical action, and chemical agents. A major
+                  focus is on the components of modern detergents, detailing the
+                  function of surfactants (which lift soil), enzymes (which
+                  break down protein-based stains), and bleaching agents. This
+                  provides a clear understanding of what happens to a garment
+                  inside a washing machine.
+                </p>
+                <p class="mb-4">
+                  A significant portion of the chapter is dedicated to
+                  demystifying the international care labeling system. It
+                  explains the meaning behind the standardized symbols for
+                  washing, drying, bleaching, and ironing, providing students
+                  with the knowledge to correctly interpret and create care
+                  labels. The chapter also covers the principles of professional
+                  dry-cleaning, explaining the use of non-aqueous solvents for
+                  cleaning delicate fibers like wool and silk that can be
+                  damaged by water. This practical knowledge is essential for
+                  anyone involved in apparel design, product development, or
+                  retail.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter13"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 13: Performance, Technical, and Smart Textiles
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This forward-looking chapter explores the cutting edge of
+                  textile innovation, focusing on materials engineered for
+                  specific, demanding functions that go far beyond traditional
+                  apparel. The expansion of this chapter in recent editions
+                  signals the growing importance of this sector. It introduces
+                  students to the high-growth fields of performance textiles
+                  (for sports and activewear), technical textiles (for
+                  industrial and engineering applications), and smart textiles
+                  (which integrate electronics).
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3B8C5/44403C?text=Smart+Fabric+with+LEDs&font=lora"
+                    alt="A piece of smart fabric with integrated glowing LED lights"
+                  />
+                  <figcaption>
+                    Representative image: Smart fabric with integrated LEDs.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  In the realm of performance textiles, the chapter explains the
+                  science behind properties like moisture management (wicking
+                  fabrics that use capillary action to pull sweat away from the
+                  skin), thermal regulation (materials that can store and
+                  release heat, or provide insulation without bulk), and stretch
+                  and recovery (for freedom of movement). It discusses how fiber
+                  choice, yarn structure, and fabric construction are all
+                  manipulated to achieve these specific performance goals.
+                </p>
+                <p class="mb-4">
+                  The section on technical textiles broadens the scope to
+                  include materials used in non-apparel applications. This
+                  includes geotextiles used for soil stabilization in
+                  construction, medical textiles for sterile implants and
+                  advanced wound dressings, and protective fabrics for
+                  firefighters and industrial workers that offer flame
+                  retardancy and chemical resistance. Finally, the chapter
+                  delves into the exciting world of smart textiles and wearable
+                  technology. It covers the development of conductive yarns,
+                  textile-based sensors that can monitor vital signs, and
+                  fabrics that can light up, communicate, or change color,
+                  showcasing the convergence of textiles and electronics and
+                  pointing to the future of the industry.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter14"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 14: Interiors and Home Textiles
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This chapter focuses on a major end-use category for textiles,
+                  applying the knowledge from previous chapters to the specific
+                  requirements of interior furnishings. Its inclusion is a key
+                  feature that broadens the book's appeal beyond fashion
+                  programs to serve students in interior design, demonstrating
+                  the text's comprehensive scope. The chapter underscores that
+                  while aesthetic appeal is important, home textiles are often
+                  subject to much more rigorous performance demands than
+                  apparel.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/D4A5A5/44403C?text=Interior+Textiles&font=lora"
+                    alt="A stylish living room showcasing various home textiles like curtains, rugs, and upholstery"
+                  />
+                  <figcaption>
+                    Representative image: A living room with various textiles.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The text systematically examines the different categories of
+                  home textiles and their unique performance criteria. For
+                  **upholstery fabrics**, it emphasizes the need for high
+                  abrasion resistance (often measured by the Martindale or
+                  Wyzenbeek tests), dimensional stability to prevent stretching,
+                  and resistance to pilling and soiling. For **window
+                  treatments**, the focus shifts to properties like drape, flame
+                  retardancy (a legal requirement in many commercial spaces),
+                  and colorfastness to light to prevent fading from sun
+                  exposure.
+                </p>
+                <p class="mb-4">
+                  The chapter also covers **carpets and rugs**, discussing
+                  different construction methods (tufted, woven, knotted) and
+                  the importance of pile density and fiber choice for durability
+                  and appearance retention. Finally, it addresses **bed and bath
+                  linens**, where properties like softness, absorbency (for
+                  towels), and thermal comfort (for bedding) are paramount. By
+                  applying the foundational knowledge of fibers, yarns, weaves,
+                  and finishes to these specific end uses, the chapter provides
+                  interior design students with the practical, science-based
+                  knowledge needed to make informed material selections for
+                  their projects.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter15"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 15: Determining Fabric Quality
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  This section provides a crucial overview of textile testing
+                  and quality assurance, explaining the methods and procedures
+                  used to evaluate and guarantee fabric performance. It serves
+                  as a synthesis chapter, elucidating how the interrelationships
+                  between fiber, yarn, fabric construction, coloration, and
+                  finishing all combine to determine the final quality,
+                  durability, and value of a product. It introduces students to
+                  the concept of performance specifications and the importance
+                  of standardized testing in global commerce.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/A3C5B3/44403C?text=Textile+Testing+Lab&font=lora"
+                    alt="A laboratory with equipment for testing fabric strength and abrasion"
+                  />
+                  <figcaption>
+                    Representative image: A textile testing laboratory.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  The chapter details the role of major standards organizations,
+                  such as the **American Association of Textile Chemists and
+                  Colorists (AATCC)**, which focuses on testing related to
+                  dyeing, finishing, and wet processing, and **ASTM
+                  International (American Society for Testing and Materials)**,
+                  which develops standards for physical properties.
+                  Understanding the role of these organizations is essential for
+                  anyone involved in sourcing, product development, or quality
+                  control.
+                </p>
+                <p class="mb-4">
+                  The text then describes several key performance tests that are
+                  commonly used in the industry. These include tests for
+                  **physical strength** (like tensile and tearing strength),
+                  **abrasion resistance** (to simulate wear and tear), **pilling
+                  resistance** (the tendency to form small balls of fiber on the
+                  surface), and **colorfastness** (to laundering, light, and
+                  crocking). By explaining the purpose and methodology of these
+                  tests, the chapter gives students a practical understanding of
+                  how product quality is quantified and verified, ensuring that
+                  fabrics meet the expectations of the consumer and the
+                  requirements of the law.
+                </p>
+              </div>
+            </div>
+            <div
+              id="chapter16"
+              class="bg-white p-6 rounded-lg shadow-sm border border-zinc-200 scroll-mt-20"
+            >
+              <h3 class="text-2xl font-semibold text-zinc-900 mb-4">
+                Chapter 16: Textiles Laws, Regulations, and Trade Agreements
+              </h3>
+              <div class="prose max-w-none text-zinc-700 leading-relaxed">
+                <p class="mb-4">
+                  The final chapter addresses the complex legal and regulatory
+                  frameworks that govern the global textile industry. This
+                  section provides essential knowledge for students pursuing
+                  careers in global sourcing, merchandising, and compliance,
+                  reinforcing the book's mission to prepare well-rounded
+                  professionals who understand their legal and ethical
+                  obligations. It emphasizes that producing and selling textiles
+                  is not just a matter of science and design, but also of
+                  adherence to a complex web of national and international laws.
+                </p>
+                <figure>
+                  <img
+                    src="https://placehold.co/600x400/E9D5A1/44403C?text=Garment+Factory+Inspection&font=lora"
+                    alt="An inspector reviewing labels and quality in a garment factory"
+                  />
+                  <figcaption>
+                    Representative image: A quality inspection in a garment
+                    factory.
+                  </figcaption>
+                </figure>
+                <p class="mb-4">
+                  A primary focus of the chapter is on **labeling
+                  requirements**. It provides a detailed explanation of the
+                  **Textile Fiber Products Identification Act (TFPIA)** in the
+                  United States, which mandates that textile products be labeled
+                  with their fiber content (by percentage), country of origin,
+                  and the identity of the manufacturer or importer. It also
+                  covers the **Care Labeling Rule**, which requires
+                  manufacturers to attach a permanent label with instructions
+                  for the product's regular care.
+                </p>
+                <p class="mb-4">
+                  Beyond labeling, the chapter discusses regulations related to
+                  product safety, such as the **Flammable Fabrics Act**, which
+                  sets standards for the flammability of clothing and home
+                  furnishings to protect consumers from fire hazards. It also
+                  touches upon the broader context of international trade,
+                  explaining the impact of tariffs, quotas, and trade agreements
+                  on where and how textiles are sourced and manufactured. This
+                  final chapter ensures that students leave the course with a
+                  practical understanding of the legal landscape they will have
+                  to navigate in their professional careers.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="bg-zinc-100 border-t border-zinc-200 mt-16">
+      <div
+        class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-zinc-500"
+      >
+        <p>
+          &copy; Shainila Afghan | 2025 Interactive Exegesis. Content based on
+          the analysis of J.J. Pizzuto's "Fabric Science".
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const fiberData = {
+          aesthetic: {
+            labels: ["Luster", "Drape", "Hand", "Texture"],
+            data: [25, 30, 25, 20],
+            colors: ["#FBBF24", "#F97316", "#EA580C", "#D97706"],
+          },
+          performance: {
+            labels: ["Durability", "Comfort", "Appearance Retention", "Care"],
+            data: [35, 25, 20, 20],
+            colors: ["#3B82F6", "#2563EB", "#1D4ED8", "#1E3A8A"],
+          },
+        };
+
+        const fiberChartCtx = document
+          .getElementById("fiberChart")
+          .getContext("2d");
+        let fiberChart = new Chart(fiberChartCtx, {
+          type: "doughnut",
+          data: {
+            labels: fiberData.aesthetic.labels,
+            datasets: [
+              {
+                data: fiberData.aesthetic.data,
+                backgroundColor: fiberData.aesthetic.colors,
+                borderColor: "#FDFBF8",
+                borderWidth: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.label}: ${context.raw}%`;
+                  },
+                },
+              },
+            },
+            cutout: "60%",
+          },
+        });
+
+        document
+          .getElementById("chart-controls")
+          .addEventListener("click", function (e) {
+            if (e.target.tagName === "BUTTON") {
+              const dataType = e.target.dataset.props;
+              fiberChart.data.labels = fiberData[dataType].labels;
+              fiberChart.data.datasets[0].data = fiberData[dataType].data;
+              fiberChart.data.datasets[0].backgroundColor =
+                fiberData[dataType].colors;
+              fiberChart.update();
+            }
+          });
+
+        const fiberCardsContainer = document.getElementById("fiber-cards");
+        const fibers = [
+          {
+            name: "Cotton",
+            type: "Natural",
+            icon: "🌱",
+            props: ["Absorbent", "Soft", "Strong", "Wrinkles easily"],
+          },
+          {
+            name: "Wool",
+            type: "Natural",
+            icon: "🐑",
+            props: ["Warm", "Resilient", "Absorbent", "Can shrink"],
+          },
+          {
+            name: "Polyester",
+            type: "Manufactured",
+            icon: "🧪",
+            props: ["Durable", "Wrinkle resistant", "Hydrophobic", "Strong"],
+          },
+          {
+            name: "Rayon",
+            type: "Manufactured",
+            icon: "🌳",
+            props: ["Absorbent", "Soft hand", "Drapes well", "Weak when wet"],
+          },
+        ];
+
+        fibers.forEach((fiber) => {
+          const card = document.createElement("div");
+          card.className =
+            "fiber-card bg-white p-4 rounded-lg shadow-sm border border-zinc-200 cursor-pointer transition-all hover:shadow-md hover:-translate-y-1";
+          card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-semibold text-zinc-900">${
+                          fiber.name
+                        }</h4>
+                        <div class="text-2xl">${fiber.icon}</div>
+                    </div>
+                    <p class="text-sm text-zinc-500 mb-2">${fiber.type}</p>
+                    <div class="fiber-props hidden mt-2 pt-2 border-t border-zinc-200">
+                        <ul class="text-sm text-zinc-600 space-y-1">
+                            ${fiber.props
+                              .map((p) => `<li>- ${p}</li>`)
+                              .join("")}
+                        </ul>
+                    </div>
+                `;
+          fiberCardsContainer.appendChild(card);
+        });
+
+        fiberCardsContainer.addEventListener("click", function (e) {
+          const card = e.target.closest(".fiber-card");
+          if (card) {
+            card.querySelector(".fiber-props").classList.toggle("hidden");
+          }
+        });
+
+        const weaveCanvas = document.getElementById("weaveCanvas");
+        const weaveCtx = weaveCanvas.getContext("2d");
+        const weaveControls = document.getElementById("weave-controls");
+
+        function drawWeave(type) {
+          const rect = weaveCanvas.getBoundingClientRect();
+          weaveCanvas.width = 600 || rect.width * devicePixelRatio;
+          weaveCanvas.height = 300 || rect.height * devicePixelRatio;
+          weaveCtx.scale(devicePixelRatio, devicePixelRatio);
+
+          const numThreads = 10;
+          const threadSize = rect.width / numThreads;
+          weaveCtx.clearRect(0, 0, rect.width, rect.height);
+
+          const warpColor = "#A16207";
+          const weftColor = "#D1D5DB";
+
+          for (let i = 0; i < numThreads; i++) {
+            for (let j = 0; j < numThreads; j++) {
+              let isWarpUp = false;
+              if (type === "plain") {
+                isWarpUp = (i + j) % 2 === 0;
+              } else if (type === "twill") {
+                isWarpUp = (i + j) % 4 < 2;
+              } else if (type === "satin") {
+                isWarpUp = (i * 2 + j) % 5 === 0;
+              }
+
+              weaveCtx.fillStyle = isWarpUp ? warpColor : weftColor;
+              weaveCtx.fillRect(
+                j * threadSize,
+                i * threadSize,
+                threadSize,
+                threadSize
+              );
+
+              weaveCtx.strokeStyle = "#FDFBF8";
+              weaveCtx.lineWidth = 0.5;
+              weaveCtx.strokeRect(
+                j * threadSize,
+                i * threadSize,
+                threadSize,
+                threadSize
+              );
+            }
+          }
+        }
+
+        weaveControls.addEventListener("click", function (e) {
+          if (e.target.tagName === "BUTTON") {
+            drawWeave(e.target.dataset.weave);
+          }
+        });
+        drawWeave("plain");
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                document.querySelectorAll(".nav-link").forEach((link) => {
+                  link.classList.remove("active");
+                  if (
+                    link.getAttribute("href").substring(1) === entry.target.id
+                  ) {
+                    link.classList.add("active");
+                  }
+                });
+              }
+            });
+          },
+          { rootMargin: "-50% 0px -50% 0px" }
+        );
+
+        document.querySelectorAll('section[id^="part"]').forEach((section) => {
+          observer.observe(section);
+        });
+      });
+    </script>
+  </body>
+</html>
